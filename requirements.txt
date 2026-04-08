@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+sounddevice
+numpy
+faster-whisper
+pydantic
+python-dotenv
+jinja2
+aiofiles
+pytest
+black
+ruff

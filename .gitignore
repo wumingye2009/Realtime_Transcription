@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Conda
+.env
+.conda/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Runtime temp / audio
+runtime/
+temp/
+cache/
+*.wav
+*.mp3
+
+# Build / test
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Project outputs
+outputs/
