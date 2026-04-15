@@ -39,3 +39,13 @@ htmlcov/
 
 # Project outputs
 outputs/
+
+# build artifacts
+dist/
+build/
+*.exe
+*.zip
+
+# pyinstaller
+*.spec.backup
+
