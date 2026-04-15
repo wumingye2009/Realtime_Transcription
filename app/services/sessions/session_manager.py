@@ -1064,12 +1064,14 @@ class SessionManager:
             self.diagnostics.final_transcript_ready = True
             self.diagnostics.final_transcript_source = "realtime_preview"
             self.diagnostics.final_transcript_segment_count = len(self.final_transcript_segments)
+            self._write_final_transcript_artifact(output_dir, model_label="realtime_preview")
             return
         if self._final_transcription_audio_wav_path is None or not self._final_transcription_audio_wav_path.exists():
             self.final_transcript_segments = list(self.transcript_segments)
             self.diagnostics.final_transcript_ready = True
             self.diagnostics.final_transcript_source = "realtime_preview"
             self.diagnostics.final_transcript_segment_count = len(self.final_transcript_segments)
+            self._write_final_transcript_artifact(output_dir, model_label="realtime_preview")
             return
         if self.output_file_stem is None:
             return
@@ -1115,6 +1117,10 @@ class SessionManager:
             self.diagnostics.final_transcript_source = "realtime_preview_fallback"
             self.diagnostics.final_transcript_segment_count = len(self.final_transcript_segments)
             self.diagnostics.final_transcript_in_progress = False
+            self._write_final_transcript_artifact(
+                output_dir,
+                model_label=f"{final_model_size} fallback_to_realtime_preview",
+            )
             return
 
         self.final_transcript_segments = final_segments
@@ -1122,21 +1128,31 @@ class SessionManager:
         self.diagnostics.final_transcript_in_progress = False
         self.diagnostics.final_transcript_source = "offline_full_pass"
         self.diagnostics.final_transcript_segment_count = len(final_segments)
-        result_path = output_dir / f"{self.output_file_stem}_final_transcript.txt"
-        self._write_offline_comparison_output(
-            result_path,
-            final_segments,
-            title="Final Transcript",
-            source_path=self._final_transcription_audio_wav_path,
-            model_size=f"{final_model_size} (beam={final_profile.beam_size}, vad={final_profile.vad_filter}, language={final_language_mode})",
+        result_path = self._write_final_transcript_artifact(
+            output_dir,
+            model_label=f"{final_model_size} (beam={final_profile.beam_size}, vad={final_profile.vad_filter}, language={final_language_mode})",
         )
-        self.diagnostics.final_transcript_result_path = str(result_path)
         logger.info(
             "Session %s: final offline transcription finished segments=%s result=%s",
             self.active_session_id,
             len(final_segments),
             result_path,
         )
+
+    def _write_final_transcript_artifact(self, output_dir: Path, model_label: str) -> Path | None:
+        if self.output_file_stem is None:
+            return None
+        result_path = output_dir / f"{self.output_file_stem}_final_transcript.txt"
+        source_path = self._final_transcription_audio_wav_path or Path("realtime_preview")
+        self._write_offline_comparison_output(
+            result_path,
+            self.final_transcript_segments,
+            title="Final Transcript",
+            source_path=source_path,
+            model_size=model_label,
+        )
+        self.diagnostics.final_transcript_result_path = str(result_path)
+        return result_path
 
     def _run_offline_control_comparison(
         self,

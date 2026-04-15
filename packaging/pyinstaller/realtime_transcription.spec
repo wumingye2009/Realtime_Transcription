@@ -6,6 +6,7 @@ from pathlib import Path
 PROJECT_ROOT = Path.cwd()
 APP_DIR = PROJECT_ROOT / 'app'
 DOCS_DIR = PROJECT_ROOT / 'docs'
+LAUNCHER_PATH = PROJECT_ROOT / 'launcher.py'
 
 datas = [
     (str(APP_DIR / 'static'), 'app/static'),
@@ -31,7 +32,7 @@ hiddenimports = [
 ]
 
 a = Analysis(
-    ['launcher.py'],
+    [str(LAUNCHER_PATH)],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=datas,

@@ -1,7 +1,9 @@
 import time
 from pathlib import Path
+import sys
 
 from app.core.config import get_settings
+from app import core as app_core
 from app.models.audio import AudioChunk
 from app.models.session import SessionCreateRequest
 from app.services.audio.capture_base import BufferedAudioSource
@@ -625,6 +627,52 @@ def test_final_transcription_can_use_final_only_model_override(monkeypatch) -> N
         settings.transcription = original
 
 
+def test_final_transcript_artifact_is_written_even_when_final_offline_falls_back(monkeypatch) -> None:
+    class FailingWhisperModel:
+        def __init__(self, *args, **kwargs):
+            return
+
+        def transcribe(self, audio, **kwargs):
+            raise RuntimeError("offline model unavailable")
+
+    monkeypatch.setattr("app.services.transcription.faster_whisper_engine.WhisperModel", FailingWhisperModel)
+    _install_fake_loopback(monkeypatch)
+
+    manager = SessionManager()
+    payload = SessionCreateRequest(
+        system_output_device_id="0",
+        microphone_enabled=False,
+        language_mode="english",
+        output_dir="runtime/test_outputs/final_fallback_artifact",
+        export_formats=["md"],
+    )
+    start_response = manager.start(payload)
+    assert start_response.state == "running"
+    assert manager.stop().state == "stopping"
+    status = wait_for_manager_state(manager, "stopped")
+
+    assert status.diagnostics.final_transcript_ready is True
+    assert status.diagnostics.final_transcript_source == "realtime_preview_fallback"
+    assert status.diagnostics.final_transcript_result_path
+    final_result = Path(status.diagnostics.final_transcript_result_path)
+    assert final_result.exists()
+    final_result_content = final_result.read_text(encoding="utf-8")
+    assert "# Final Transcript" in final_result_content
+
+
 def test_default_transcription_model_is_base() -> None:
     assert get_settings().transcription.model_size == "base"
     assert get_settings().transcription.get_final_model_size() == "small"
+
+
+def test_packaged_settings_use_user_writable_storage(monkeypatch) -> None:
+    local_app_data = Path("runtime/test_outputs/fake_local_appdata").resolve()
+    local_app_data.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(local_app_data))
+    settings = app_core.config._build_default_settings()
+    local_root = local_app_data / "RealtimeTranscription"
+    assert settings.default_output_dir == local_root / "outputs"
+    assert settings.runtime_dir == local_root / "runtime"
+    assert settings.logs_dir == local_root / "runtime" / "logs"
+    assert settings.temp_dir == local_root / "runtime" / "temp"

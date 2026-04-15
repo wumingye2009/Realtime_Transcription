@@ -1,5 +1,7 @@
 from functools import lru_cache
+import os
 from pathlib import Path
+import sys
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -142,10 +144,29 @@ class AppSettings(BaseModel):
     transcription: TranscriptionSettings = Field(default_factory=TranscriptionSettings)
 
 
+def _packaged_storage_root() -> Path:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        return Path(local_app_data) / "RealtimeTranscription"
+    return Path.home() / "AppData" / "Local" / "RealtimeTranscription"
+
+
+def _build_default_settings() -> AppSettings:
+    settings = AppSettings()
+    if getattr(sys, "frozen", False):
+        storage_root = _packaged_storage_root()
+        settings.default_output_dir = storage_root / "outputs"
+        settings.runtime_dir = storage_root / "runtime"
+        settings.logs_dir = settings.runtime_dir / "logs"
+        settings.temp_dir = settings.runtime_dir / "temp"
+    return settings
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> AppSettings:
-    settings = AppSettings()
+    settings = _build_default_settings()
     settings.default_output_dir.mkdir(parents=True, exist_ok=True)
+    settings.runtime_dir.mkdir(parents=True, exist_ok=True)
     settings.logs_dir.mkdir(parents=True, exist_ok=True)
     settings.temp_dir.mkdir(parents=True, exist_ok=True)
     return settings

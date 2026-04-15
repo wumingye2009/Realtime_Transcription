@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -7,6 +9,9 @@ from app.api.routes_ui import router as ui_router
 from app.api.websocket import router as websocket_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+
+APP_DIR = Path(__file__).resolve().parent
+STATIC_DIR = APP_DIR / "static"
 
 
 def create_app() -> FastAPI:
@@ -19,7 +24,7 @@ def create_app() -> FastAPI:
         summary="Local Windows-first realtime transcription scaffold",
     )
 
-    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     @app.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
