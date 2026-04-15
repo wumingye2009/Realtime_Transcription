@@ -1,6 +1,8 @@
 fastapi
 uvicorn[standard]
 sounddevice
+soundcard
+PyAudioWPatch
 numpy
 faster-whisper
 pydantic
